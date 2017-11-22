@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -8,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using aejw.Network;
+using CG.Web.MegaApiClient;
 
 namespace CopyFilesToCloudDriver
 {
@@ -18,7 +20,8 @@ namespace CopyFilesToCloudDriver
        
         static void Main(string[] args)
         {
-            ThreadPool.QueueUserWorkItem(ConnectToDrive, null);
+            ICloud cloud = GetCloudType();
+            ThreadPool.QueueUserWorkItem(cloud.ConnectToDrive, null);
             Console.WriteLine("Waiting...");
             lock(workerLocker)
                 while (run > 0)
@@ -29,27 +32,49 @@ namespace CopyFilesToCloudDriver
                 }
         }
 
-        static void ConnectToDrive(object o)
+        static ICloud GetCloudType()
         {
-            NetworkDrive oNetDrive = new NetworkDrive();
-          
-            try
+           string cloudName =  ConfigurationManager.AppSettings["CloudName"];
+            ICloud cloud = null;
+            switch (cloudName.ToUpper())
             {
-                bool isDowload = false;
-                FileInfo file = new FileInfo(@"H:\ATI2016 v19.5620.iso");
-               
-                if (file.Exists)
+                case "MEGA":
+                    cloud = new Mega();
+                    break;
+                case "YANDEX":
+                   cloud = new Yandex();
+                    break;
+            }
+            return cloud;
+        }
+
+        private class Yandex : ICloud
+        {
+            public void ConnectToDrive(object o)
+            {
+                NetworkDrive oNetDrive = new NetworkDrive();
+
+                try
                 {
-                    if (file.Extension.ToUpper() == ".ISO")
-                    {
-                        if (file.CreationTime.Date.ToShortDateString() == "21.09.2015")
-                        {
-                            isDowload = true;
-                        }
-                    }
-                }
-                if (isDowload)
-                {
+                   // bool isDowload = false;
+                    string source = ConfigurationManager.AppSettings["Source"];
+                    string typeFiles = ConfigurationManager.AppSettings["TypeFile"];
+
+                    var files = Directory.GetFiles(source, "*." + typeFiles, SearchOption.TopDirectoryOnly);
+                    var date = files.Max(n => File.GetCreationTime(n).ToShortDateString());
+                    var filterFiles = files.Where((n) => File.GetCreationTime(n).ToShortDateString() == date);
+
+                    //if (element.Exists)
+                    //{
+                    //    if (file.CreationTime.Date.ToShortDateString() == "21.09.2015")
+                    //    {
+                    //        isDowload = true;
+                    //    }
+
+                    //}
+
+                    //if (isDowload)
+                    //{
 
                     //set propertys
                     oNetDrive.Force = Convert.ToBoolean(ConfigurationManager.AppSettings["Force"]);
@@ -61,7 +86,7 @@ namespace CopyFilesToCloudDriver
                     string username = ConfigurationManager.AppSettings["UserName"];
                     string password = ConfigurationManager.AppSettings["Password"];
 
-                    string source = ConfigurationManager.AppSettings["Source"];
+                    //string source = ConfigurationManager.AppSettings["Source"];
                     string destination = ConfigurationManager.AppSettings["Destination"];
                     //match call to options provided
                     if (string.IsNullOrEmpty(username) && string.IsNullOrEmpty(password))
@@ -76,37 +101,78 @@ namespace CopyFilesToCloudDriver
                     {
                         oNetDrive.MapDrive(username, password);
                     }
-
-                    using (FileStream fstreamW = new FileStream(destination, FileMode.Create))
+                    lock (workerLocker)
                     {
-                        // чтение из файла
-                        using (FileStream fstreamR = File.OpenRead(source))
+                        foreach (var element in filterFiles)
                         {
-                            // преобразуем строку в байты
-                            byte[] buffer = new byte[16 * 1024];
-                            int read;
-                            // считываем данные
-                            lock (workerLocker) 
+                            using (FileStream fstreamW = new FileStream(oNetDrive.LocalDrive + "\\" + Path.GetFileName(element),FileMode.Create))
                             {
-
-                                while ((read = fstreamR.Read(buffer, 0, buffer.Length)) > 0)
+                                // чтение из файла
+                                using (FileStream fstreamR = File.OpenRead(element))
                                 {
-                                    fstreamW.Write(buffer, 0, read);
-                                }
-                                run = 0;
-                                Monitor.Pulse(workerLocker);
-                            }
-                        }
-                    }
-                    //File.Copy(file.FullName, oNetDrive.LocalDrive + file.Name, true);
-                }
+                                    // преобразуем строку в байты
+                                    byte[] buffer = new byte[16*1024];
+                                    int read;
+                                    // считываем данные
 
+
+                                    while ((read = fstreamR.Read(buffer, 0, buffer.Length)) > 0)
+                                    {
+                                        fstreamW.Write(buffer, 0, read);
+                                    }
+
+                                }
+                            }
+                            oNetDrive.UnMapDrive();
+                            run = 0;
+                            Monitor.Pulse(workerLocker);
+                        }
+                        //File.Copy(file.FullName, oNetDrive.LocalDrive + file.Name, true);
+                    }
+
+                }
+                catch (Exception err)
+                {
+                    MessageBox.Show(err.Message);
+                }
+                oNetDrive = null;
             }
-            catch (Exception err)
+
+        }
+
+        class Mega : ICloud
+        {
+
+            public void ConnectToDrive(object o)
             {
-                MessageBox.Show(err.Message);
+                lock (workerLocker)
+                {
+                    MegaApiClient client = new MegaApiClient();
+
+                    client.Login("verasuperfinanci@gmail.com", "buxgalter");
+                    var nodes = client.GetNodes();
+
+                    INode root = nodes.Single(n => n.Type == NodeType.Root);
+                    INode myFolder = client.CreateFolder("Upload", root);
+
+                    string source = ConfigurationManager.AppSettings["Source"];
+                    string typeFiles = ConfigurationManager.AppSettings["TypeFile"];
+
+                    var files = Directory.GetFiles(source, "*." + typeFiles, SearchOption.TopDirectoryOnly);
+                    var date = files.Max(n => File.GetCreationTime(n).ToShortDateString());
+                    var filterFiles = files.Where((n) => File.GetCreationTime(n).ToShortDateString() == date);
+
+                    
+                    foreach (string file in filterFiles)
+                    {
+                        INode myFile = client.UploadFile(file, myFolder);
+                        client.GetDownloadLink(myFile);
+                        // Console.WriteLine(downloadUrl); 
+                    }
+                    run = 0;
+                    Monitor.Pulse(workerLocker);
+                }
             }
-            oNetDrive = null;
         }
     }
 }
