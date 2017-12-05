@@ -159,16 +159,16 @@ namespace CopyFilesToCloudDriver
                     string typeFiles = ConfigurationManager.AppSettings["TypeFile"];
 
                     var files = Directory.GetFiles(source, "*." + typeFiles, SearchOption.TopDirectoryOnly);
-                    var date = files.Max(n => File.GetCreationTime(n).ToShortDateString());
-                    var filterFiles = files.Where((n) => File.GetCreationTime(n).ToShortDateString() == date);
+                    var file = files.OrderBy(n => File.GetCreationTime(n).ToLongDateString()).Last();
+                  /*  var filterFiles = files.Where((n) => File.GetCreationTime(n).ToShortDateString() == date);*/
 
                     
-                    foreach (string file in filterFiles)
-                    {
+                  /*  foreach (string file in filterFiles)
+                    {*/
                         INode myFile = client.UploadFile(file, myFolder);
                         client.GetDownloadLink(myFile);
                         // Console.WriteLine(downloadUrl); 
-                    }
+                   // }
                     run = 0;
                     Monitor.Pulse(workerLocker);
                 }
