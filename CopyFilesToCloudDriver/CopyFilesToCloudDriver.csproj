@@ -60,6 +60,12 @@
   <PropertyGroup>
     <SignManifests>true</SignManifests>
   </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject />
+  </PropertyGroup>
+  <PropertyGroup>
+    <NoWin32Manifest>true</NoWin32Manifest>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="MegaApiClient, Version=1.6.1.368, Culture=neutral, PublicKeyToken=0480d311efbeb4e2, processorArchitecture=MSIL">
       <HintPath>packages\MegaApiClient.1.6.1\lib\net45\MegaApiClient.dll</HintPath>
@@ -86,6 +92,8 @@
     <Compile Include="Mega.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Stream.cs" />
+    <Compile Include="Yandex_v2.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config">

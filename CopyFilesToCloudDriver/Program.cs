@@ -16,12 +16,12 @@ namespace CopyFilesToCloudDriver
     class Program
     {
         static object workerLocker = new object();
-        private static int run = 1;
+        public static int run = 1;
        
         static void Main(string[] args)
         {
             ICloud cloud = GetCloudType();
-            ThreadPool.QueueUserWorkItem(cloud.ConnectToDrive, null);
+            ThreadPool.QueueUserWorkItem(cloud.ConnectToDrive, workerLocker);
             Console.WriteLine("Waiting...");
             lock(workerLocker)
                 while (run > 0)
@@ -30,6 +30,8 @@ namespace CopyFilesToCloudDriver
                     Monitor.Wait(workerLocker);
                  
                 }
+            Console.WriteLine("End... The end!");
+            Console.Read();
         }
 
         static ICloud GetCloudType()
@@ -43,6 +45,10 @@ namespace CopyFilesToCloudDriver
                     break;
                 case "YANDEX":
                    cloud = new Yandex();
+                    break;
+                case "YANDEX_V2":
+                   
+                    cloud = new Yandex_v2();
                     break;
             }
             return cloud;
@@ -148,31 +154,40 @@ namespace CopyFilesToCloudDriver
                 lock (workerLocker)
                 {
                     MegaApiClient client = new MegaApiClient();
-
-                    client.Login("verasuperfinanci@gmail.com", "buxgalter");
+                    
+                    client.Login(ConfigurationManager.AppSettings["UserName"] + "@gmail.com", ConfigurationManager.AppSettings["Password"]);
                     var nodes = client.GetNodes();
 
                     INode root = nodes.Single(n => n.Type == NodeType.Root);
-                    INode myFolder = client.CreateFolder("Upload", root);
+                    INode myFolder = client.CreateFolder("Upload "+DateTime.Today, root);
 
                     string source = ConfigurationManager.AppSettings["Source"];
                     string typeFiles = ConfigurationManager.AppSettings["TypeFile"];
 
                     var files = Directory.GetFiles(source, "*." + typeFiles, SearchOption.TopDirectoryOnly);
-                    var file = files.OrderBy(n => File.GetCreationTime(n).ToLongDateString()).Last();
+                    var file = files.OrderBy(File.GetCreationTime).First();
                   /*  var filterFiles = files.Where((n) => File.GetCreationTime(n).ToShortDateString() == date);*/
 
-                    
-                  /*  foreach (string file in filterFiles)
-                    {*/
-                        INode myFile = client.UploadFile(file, myFolder);
+
+                    using (var stream = new ProgressionStream(new FileStream(file, FileMode.Open), PrintProgression))
+                    {
+                        
+                  
+                        INode myFile = client.Upload(stream, Path.GetFileName(file), myFolder);
                         client.GetDownloadLink(myFile);
-                        // Console.WriteLine(downloadUrl); 
-                   // }
+                    }
+                
                     run = 0;
                     Monitor.Pulse(workerLocker);
                 }
             }
+        }
+        public static void PrintProgression(double progression, double size)
+        {
+          
+            Console.Write(progression+ " of "+size+'\r');
+           /* Console.ReadLine();
+            Console.Clear();*/
         }
     }
 }
