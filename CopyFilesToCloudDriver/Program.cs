@@ -23,15 +23,29 @@ namespace CopyFilesToCloudDriver
             ICloud cloud = GetCloudType();
             ThreadPool.QueueUserWorkItem(cloud.ConnectToDrive, workerLocker);
             Console.WriteLine("Waiting...");
-            lock(workerLocker)
+            lock (workerLocker)
+            {
+                try
+                {
+
+                
                 while (run > 0)
                 {
-                  
+
                     Monitor.Wait(workerLocker);
-                 
+
                 }
+                }
+                catch (Exception)
+                {
+
+                    Console.WriteLine("89899");
+                    ;
+                }
+            }
             Console.WriteLine("End... The end!");
-            Console.Read();
+            
+           
         }
 
         static ICloud GetCloudType()
@@ -59,59 +73,64 @@ namespace CopyFilesToCloudDriver
             public void ConnectToDrive(object o)
             {
                 NetworkDrive oNetDrive = new NetworkDrive();
-
-                try
+                lock (workerLocker)
                 {
-                   // bool isDowload = false;
-                    string source = ConfigurationManager.AppSettings["Source"];
-                    string typeFiles = ConfigurationManager.AppSettings["TypeFile"];
-
-                    var files = Directory.GetFiles(source, "*." + typeFiles, SearchOption.TopDirectoryOnly);
-                    var date = files.Max(n => File.GetCreationTime(n).ToShortDateString());
-                    var filterFiles = files.Where((n) => File.GetCreationTime(n).ToShortDateString() == date);
-
-                    //if (element.Exists)
-                    //{
-                    //    if (file.CreationTime.Date.ToShortDateString() == "21.09.2015")
-                    //    {
-                    //        isDowload = true;
-                    //    }
-
-                    //}
-
-                    //if (isDowload)
-                    //{
-
-                    //set propertys
-                    oNetDrive.Force = Convert.ToBoolean(ConfigurationManager.AppSettings["Force"]);
-                    oNetDrive.Persistent = Convert.ToBoolean(ConfigurationManager.AppSettings["Persistent"]);
-                    oNetDrive.LocalDrive = ConfigurationManager.AppSettings["LocalDrive"];
-                    oNetDrive.PromptForCredentials = Convert.ToBoolean(ConfigurationManager.AppSettings["PromptForCred"]);
-                    oNetDrive.ShareName = ConfigurationManager.AppSettings["ShareName"];
-                    oNetDrive.SaveCredentials = Convert.ToBoolean(ConfigurationManager.AppSettings["SaveCredentials"]);
-                    string username = ConfigurationManager.AppSettings["UserName"];
-                    string password = ConfigurationManager.AppSettings["Password"];
-
-                    //string source = ConfigurationManager.AppSettings["Source"];
-                    string destination = ConfigurationManager.AppSettings["Destination"];
-                    //match call to options provided
-                    if (string.IsNullOrEmpty(username) && string.IsNullOrEmpty(password))
+                    try
                     {
-                        oNetDrive.MapDrive();
-                    }
-                    else if (string.IsNullOrEmpty(username))
-                    {
-                        oNetDrive.MapDrive(password);
-                    }
-                    else
-                    {
-                        oNetDrive.MapDrive(username, password);
-                    }
-                    lock (workerLocker)
-                    {
+                        // bool isDowload = false;
+                        string source = ConfigurationManager.AppSettings["Source"];
+                        string typeFiles = ConfigurationManager.AppSettings["TypeFile"];
+
+                        var files = Directory.GetFiles(source, "*." + typeFiles, SearchOption.TopDirectoryOnly);
+                        var date = files.Max(n => File.GetCreationTime(n).ToShortDateString());
+                        var filterFiles = files.Where((n) => File.GetCreationTime(n).ToShortDateString() == date);
+
+                        //if (element.Exists)
+                        //{
+                        //    if (file.CreationTime.Date.ToShortDateString() == "21.09.2015")
+                        //    {
+                        //        isDowload = true;
+                        //    }
+
+                        //}
+
+                        //if (isDowload)
+                        //{
+
+                        //set propertys
+                        oNetDrive.Force = Convert.ToBoolean(ConfigurationManager.AppSettings["Force"]);
+                        oNetDrive.Persistent = Convert.ToBoolean(ConfigurationManager.AppSettings["Persistent"]);
+                        oNetDrive.LocalDrive = ConfigurationManager.AppSettings["LocalDrive"];
+                        oNetDrive.PromptForCredentials =
+                            Convert.ToBoolean(ConfigurationManager.AppSettings["PromptForCred"]);
+                        oNetDrive.ShareName = ConfigurationManager.AppSettings["ShareName"];
+                        oNetDrive.SaveCredentials =
+                            Convert.ToBoolean(ConfigurationManager.AppSettings["SaveCredentials"]);
+                        string username = ConfigurationManager.AppSettings["UserName"];
+                        string password = ConfigurationManager.AppSettings["Password"];
+
+                        //string source = ConfigurationManager.AppSettings["Source"];
+                        string destination = ConfigurationManager.AppSettings["Destination"];
+                        //match call to options provided
+                        if (string.IsNullOrEmpty(username) && string.IsNullOrEmpty(password))
+                        {
+                            oNetDrive.MapDrive();
+                        }
+                        else if (string.IsNullOrEmpty(username))
+                        {
+                            oNetDrive.MapDrive(password);
+                        }
+                        else
+                        {
+                            oNetDrive.MapDrive(username, password);
+                        }
+
                         foreach (var element in filterFiles)
                         {
-                            using (FileStream fstreamW = new FileStream(oNetDrive.LocalDrive + "\\" + Path.GetFileName(element),FileMode.Create))
+                            using (
+                                FileStream fstreamW =
+                                    new FileStream(oNetDrive.LocalDrive + "\\" + Path.GetFileName(element),
+                                        FileMode.Create))
                             {
                                 // чтение из файла
                                 using (FileStream fstreamR = File.OpenRead(element))
@@ -130,18 +149,25 @@ namespace CopyFilesToCloudDriver
                                 }
                             }
                             oNetDrive.UnMapDrive();
-                            run = 0;
-                            Monitor.Pulse(workerLocker);
+                            //run = 0;
+                            //Monitor.Pulse(workerLocker);
                         }
                         //File.Copy(file.FullName, oNetDrive.LocalDrive + file.Name, true);
                     }
 
+
+                    catch (Exception err)
+                    {
+                        MessageBox.Show(err.Message);
+                       
+                    }
+                    finally
+                    {
+                        oNetDrive = null;
+                        run = 0;
+                        Monitor.Pulse(workerLocker);
+                    }
                 }
-                catch (Exception err)
-                {
-                    MessageBox.Show(err.Message);
-                }
-                oNetDrive = null;
             }
 
         }
@@ -153,32 +179,43 @@ namespace CopyFilesToCloudDriver
             {
                 lock (workerLocker)
                 {
-                    MegaApiClient client = new MegaApiClient();
-                    
-                    client.Login(ConfigurationManager.AppSettings["UserName"] + "@gmail.com", ConfigurationManager.AppSettings["Password"]);
-                    var nodes = client.GetNodes();
-
-                    INode root = nodes.Single(n => n.Type == NodeType.Root);
-                    INode myFolder = client.CreateFolder("Upload "+DateTime.Today, root);
-
-                    string source = ConfigurationManager.AppSettings["Source"];
-                    string typeFiles = ConfigurationManager.AppSettings["TypeFile"];
-
-                    var files = Directory.GetFiles(source, "*." + typeFiles, SearchOption.TopDirectoryOnly);
-                    var file = files.OrderBy(File.GetCreationTime).First();
-                  /*  var filterFiles = files.Where((n) => File.GetCreationTime(n).ToShortDateString() == date);*/
-
-
-                    using (var stream = new ProgressionStream(new FileStream(file, FileMode.Open), PrintProgression))
+                    try
                     {
-                        
-                  
-                        INode myFile = client.Upload(stream, Path.GetFileName(file), myFolder);
-                        client.GetDownloadLink(myFile);
+                        MegaApiClient client = new MegaApiClient();
+
+                        client.Login(ConfigurationManager.AppSettings["UserName"],
+                            ConfigurationManager.AppSettings["Password"]);
+                        var nodes = client.GetNodes();
+
+                        INode root = nodes.Single(n => n.Type == NodeType.Root);
+                        INode myFolder = client.CreateFolder("Upload " + DateTime.Today, root);
+
+                        string source = ConfigurationManager.AppSettings["Source"];
+                        string typeFiles = ConfigurationManager.AppSettings["TypeFile"];
+
+                        var files = Directory.GetFiles(source, "*." + typeFiles, SearchOption.TopDirectoryOnly);
+                        var file = files.OrderByDescending(File.GetLastWriteTime).First();
+                        /*  var filterFiles = files.Where((n) => File.GetCreationTime(n).ToShortDateString() == date);*/
+
+
+                        using (var stream = new ProgressionStream(new FileStream(file, FileMode.Open), PrintProgression)
+                            )
+                        {
+
+
+                            INode myFile = client.Upload(stream, Path.GetFileName(file), myFolder);
+                            client.GetDownloadLink(myFile);
+                        }
                     }
-                
-                    run = 0;
-                    Monitor.Pulse(workerLocker);
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show("MEGA: " + ex.Message);
+                    }
+                    finally
+                    {
+                        run = 0;
+                        Monitor.Pulse(workerLocker);
+                    }
                 }
             }
         }
