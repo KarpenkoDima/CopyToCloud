@@ -5,7 +5,7 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{433A4F65-57FB-4DE5-BAB2-E2622DCD705F}</ProjectGuid>
-    <OutputType>WinExe</OutputType>
+    <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>CopyFilesToCloudDriver</RootNamespace>
     <AssemblyName>CopyFilesToCloudDriver</AssemblyName>
@@ -49,16 +49,16 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestCertificateThumbprint>5845E9AB1217B0A4517B64E8AD64358C9572FC61</ManifestCertificateThumbprint>
+    <ManifestCertificateThumbprint>3999FF689FD7A00E91F920F998C842E1343B17BF</ManifestCertificateThumbprint>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestKeyFile>CopyFilesToCloudDriver_TemporaryKey.pfx</ManifestKeyFile>
+    <ManifestKeyFile>CopyFilesToCloudDriver_1_TemporaryKey.pfx</ManifestKeyFile>
   </PropertyGroup>
   <PropertyGroup>
     <GenerateManifests>true</GenerateManifests>
   </PropertyGroup>
   <PropertyGroup>
-    <SignManifests>true</SignManifests>
+    <SignManifests>false</SignManifests>
   </PropertyGroup>
   <PropertyGroup>
     <StartupObject />
@@ -67,8 +67,8 @@
     <NoWin32Manifest>true</NoWin32Manifest>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="MegaApiClient, Version=1.6.1.368, Culture=neutral, PublicKeyToken=0480d311efbeb4e2, processorArchitecture=MSIL">
-      <HintPath>packages\MegaApiClient.1.6.1\lib\net45\MegaApiClient.dll</HintPath>
+    <Reference Include="MegaApiClient, Version=1.6.0.0, Culture=neutral, PublicKeyToken=0480d311efbeb4e2, processorArchitecture=MSIL">
+      <HintPath>packages\MegaApiClient.1.6.0\lib\net45\MegaApiClient.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=10.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">

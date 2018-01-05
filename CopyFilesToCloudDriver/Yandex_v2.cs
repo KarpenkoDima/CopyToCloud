@@ -99,7 +99,16 @@ namespace CopyFilesToCloudDriver
 
                 catch (Exception err)
                 {
-                    MessageBox.Show(err.Message);
+                    var path = Path.Combine(Environment.CurrentDirectory, "log.txt");
+                    using (FileStream fs = new FileStream(path, FileMode.Append))
+                    {
+                        using (StreamWriter sw = new StreamWriter(fs))
+                        {
+                            sw.WriteLine("=========YANDEX_2=============" + Environment.NewLine);
+                            sw.WriteLine("-----" + DateTime.Now.ToShortDateString() + "-----" + Environment.NewLine);
+                            sw.WriteLine(err.Message);
+                        }
+                    };
 
                 }
                 finally

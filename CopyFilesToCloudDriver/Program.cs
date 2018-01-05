@@ -17,35 +17,40 @@ namespace CopyFilesToCloudDriver
     {
         static object workerLocker = new object();
         public static int run = 1;
-       
+
         static void Main(string[] args)
         {
-            ICloud cloud = GetCloudType();
-            ThreadPool.QueueUserWorkItem(cloud.ConnectToDrive, workerLocker);
-            Console.WriteLine("Waiting...");
-            lock (workerLocker)
+            try
             {
-                try
+                ICloud cloud = GetCloudType();
+                ThreadPool.QueueUserWorkItem(cloud.ConnectToDrive, workerLocker);
+                Console.WriteLine("Waiting...");
+                lock (workerLocker)
                 {
 
-                
-                while (run > 0)
-                {
-
-                    Monitor.Wait(workerLocker);
-
-                }
-                }
-                catch (Exception)
-                {
-
-                    Console.WriteLine("89899");
-                    ;
+                    while (run > 0)
+                    {
+                        Monitor.Wait(workerLocker);
+                    }
                 }
             }
-            Console.WriteLine("End... The end!");
+            catch (Exception ex)
+            {
             
-           
+                using (FileStream fs = new FileStream(Environment.CurrentDirectory + "log.txt", FileMode.OpenOrCreate))
+                {
+                    using (StreamWriter sw = new StreamWriter(fs))
+                    {
+                        sw.WriteLine("=========Main=============" + Environment.NewLine);
+                        sw.WriteLine("-----" + DateTime.Now.ToShortDateString() + "-----" + Environment.NewLine);
+                        sw.WriteLine(ex.Message);
+                    }
+                }
+
+            }
+            
+            //Console.WriteLine("End... The end!");
+
         }
 
         static ICloud GetCloudType()
@@ -60,8 +65,7 @@ namespace CopyFilesToCloudDriver
                 case "YANDEX":
                    cloud = new Yandex();
                     break;
-                case "YANDEX_V2":
-                   
+                case "YANDEX_V2":                   
                     cloud = new Yandex_v2();
                     break;
             }
@@ -158,8 +162,17 @@ namespace CopyFilesToCloudDriver
 
                     catch (Exception err)
                     {
-                        MessageBox.Show(err.Message);
-                       
+                        var path = Path.Combine(Environment.CurrentDirectory, "log.txt");
+                        using (FileStream fs = new FileStream(path, FileMode.Append))
+                        {
+                            using (StreamWriter sw = new StreamWriter(fs))
+                            {
+                                sw.WriteLine("=========YANDEX=============" + Environment.NewLine);
+                                sw.WriteLine("-----" + DateTime.Now.ToShortDateString() + "-----" + Environment.NewLine);
+                                sw.WriteLine(err.Message);
+                            }
+                        };
+
                     }
                     finally
                     {
@@ -209,7 +222,20 @@ namespace CopyFilesToCloudDriver
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show("MEGA: " + ex.Message);
+                        var path = Path.Combine(Environment.CurrentDirectory, "log.txt");
+                        //if (!File.Exists(path))
+                        //{
+                        //    File.Create(path);                          
+                        //}
+                        using (FileStream fs = new FileStream(path, FileMode.Append))
+                        {
+                            using (StreamWriter sw = new StreamWriter(fs))
+                            {
+                                sw.WriteLine( "=========MEGA============="+ Environment.NewLine);
+                                sw.WriteLine( "-----" + DateTime.Now.ToShortDateString() + "-----" +Environment.NewLine);
+                                sw.WriteLine(ex.Message);
+                            }
+                        };
                     }
                     finally
                     {
